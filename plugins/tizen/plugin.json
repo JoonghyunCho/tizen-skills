@@ -1,0 +1,6 @@
+{
+  "name": "tizen",
+  "version": "0.1.0",
+  "description": "Core Tizen .NET skills for environment diagnosis, build setup, Tizen Workload management, and packaging.",
+  "skills": ["./skills/"]
+}

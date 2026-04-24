@@ -1,0 +1,13 @@
+{
+  "name": "tizen-agent-skills",
+  "owner": {
+    "name": "Tizen Agent Skills contributors"
+  },
+  "plugins": [
+    {
+      "name": "tizen",
+      "source": "./plugins/tizen",
+      "description": "Core Tizen .NET skills: environment diagnosis, build.sh guidance, Tizen Workload setup, and packaging fundamentals."
+    }
+  ]
+}

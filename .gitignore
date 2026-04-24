@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Local-only agent / skill debug output
+*.log
+/tmp/
