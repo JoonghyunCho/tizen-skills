@@ -45,6 +45,19 @@ The Workload version tracks the .NET SDK band — picking `net8.0-tizen11.0` mea
 the Tizen Workload for the .NET 8 SDK band must be installed; the `tizen11.0`
 suffix is a **platform binding**, not a workload selector.
 
+### Reading `dotnet workload list` output correctly
+
+The Tizen workload's `Manifest Version` column looks like `10.0.123/10.0.100`.
+The leading `10.0.x` is the **.NET SDK feature band the workload manifest ships
+with**, not a new TFM. A `tizen 10.0.*` workload on a machine with only a
+.NET 10 SDK does **not** automatically mean `net10.0-tizenX.0` TFMs exist — the
+manifest may still only expose the TFMs listed in the matrix above.
+
+To confirm which TFMs a given workload actually exposes, inspect the
+`WorkloadManifest.json` on disk (e.g., `%ProgramFiles%\dotnet\sdk-manifests\<band>\samsung.net.tizen\*\WorkloadManifest.json`
+on Windows, `/usr/share/dotnet/sdk-manifests/<band>/samsung.net.tizen/*/WorkloadManifest.json`
+on Linux) and look for `alias` entries under each target pack.
+
 ## Installing / updating the Workload
 
 ```bash
@@ -74,6 +87,7 @@ SDK will be patched before running the install.
 | `Package Tizen.NET.API13 is not compatible with net6.0-tizen9.0`                                             | API Level package version is tied to the TFM's platform suffix — API13 is for `net8.0-tizen10.0`, not `net6.0-*`.  |
 | `dotnet workload list` shows `tizen` but `dotnet build` still errors with NETSDK1139                         | `dotnet` on PATH resolves to a *different* SDK than the one the workload was installed against.                    |
 | `net8.0-tizen` resolves to the wrong API package                                                             | Unversioned TFM — pin to `net8.0-tizen10.0` or `net8.0-tizen11.0` instead.                                         |
+| Machine has `tizen 10.0.*` workload but no .NET 6 / .NET 8 SDK, `net8.0-tizen11.0` build still fails         | Workload manifest band (`10.0.*`) ≠ TFM set it exposes. `.NET 8 SDK` is still required to build `net8.0-*` TFMs. Install the .NET 8 SDK. |
 
 ## Cross-references
 
