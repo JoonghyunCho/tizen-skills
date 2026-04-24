@@ -84,6 +84,52 @@ else
   echo "  status: not-found"
 fi
 
+# --- Tizen workload manifests -------------------------------------------------
+# Authoritative source of which TFMs the installed 'tizen' workload can build.
+# We look for `samsung.net.sdk.tizen/WorkloadManifest.json` across the standard
+# dotnet SDK manifest roots. Extraction degrades gracefully: jq → python3 → grep.
+echo "tizen_workload_manifests:"
+_TZ_MANIFEST_PATHS=(
+  /usr/share/dotnet/sdk-manifests
+  /usr/local/share/dotnet/sdk-manifests
+  /usr/lib/dotnet/sdk-manifests
+  "$HOME/.dotnet/sdk-manifests"
+)
+_TZ_FOUND=0
+for root in "${_TZ_MANIFEST_PATHS[@]}"; do
+  [[ -d "$root" ]] || continue
+  # shellcheck disable=SC2044
+  while IFS= read -r -d '' mf; do
+    _TZ_FOUND=1
+    echo "  - path: $mf"
+    # Version
+    if have jq; then
+      ver=$(jq -r '.version // "unknown"' "$mf" 2>/dev/null)
+    elif have python3; then
+      ver=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('version','unknown'))" "$mf" 2>/dev/null)
+    else
+      ver=$(grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$mf" | head -n1 | sed -E 's/.*"([^"]+)"$/\1/')
+    fi
+    echo "    version: ${ver:-unknown}"
+    # API Ref packs
+    echo "    api_ref_packs:"
+    if have jq; then
+      jq -r '.packs | keys[] | select(test("^Samsung\\.Tizen\\.Ref\\.API"))' "$mf" 2>/dev/null | sed 's/^/      - /'
+    elif have python3; then
+      python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1]))
+for k in sorted(d.get('packs',{})):
+    if k.startswith('Samsung.Tizen.Ref.API'):
+        print('      - '+k)" "$mf" 2>/dev/null
+    else
+      # Fallback: grep the pack keys; may miss subtle format changes
+      grep -oE '"Samsung\.Tizen\.Ref\.API[0-9]+"' "$mf" | sort -u | sed -E 's/"(.+)"/      - \1/'
+    fi
+  done < <(find "$root" -type f -name WorkloadManifest.json -path "*samsung.net.sdk.tizen*" -print0 2>/dev/null)
+done
+[[ $_TZ_FOUND -eq 0 ]] && echo "  status: not-found"
+
 # --- Certificate profiles -----------------------------------------------------
 echo "tizen_certificates:"
 PROFILES_XML="${TIZEN_STUDIO_DATA:-$HOME/tizen-studio-data}/profile/profiles.xml"

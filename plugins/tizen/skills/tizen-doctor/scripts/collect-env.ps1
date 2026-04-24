@@ -93,6 +93,48 @@ if (Have java) {
     Write-Output "  status: not-found"
 }
 
+# --- Tizen workload manifests -------------------------------------------------
+# Authoritative source of which TFMs the installed 'tizen' workload can build.
+Write-Output "tizen_workload_manifests:"
+$manifestRoots = @(
+    (Join-Path $env:ProgramFiles        'dotnet\sdk-manifests'),
+    (Join-Path ${env:ProgramFiles(x86)} 'dotnet\sdk-manifests'),
+    (Join-Path $env:USERPROFILE         '.dotnet\sdk-manifests')
+) | Where-Object { $_ -and (Test-Path $_) }
+
+$found = $false
+foreach ($root in $manifestRoots) {
+    Get-ChildItem -Path $root -Recurse -Filter 'WorkloadManifest.json' -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -match 'samsung\.net\.sdk\.tizen' } |
+        ForEach-Object {
+            $found = $true
+            $mf = $_.FullName
+            Write-Output "  - path: $mf"
+            try {
+                $json = Get-Content $mf -Raw | ConvertFrom-Json
+                $ver = if ($json.version) { $json.version } else { 'unknown' }
+                Write-Output "    version: $ver"
+                Write-Output "    api_ref_packs:"
+                $packNames = @()
+                if ($json.packs) {
+                    # PSCustomObject — enumerate property names
+                    $packNames = $json.packs.PSObject.Properties.Name |
+                        Where-Object { $_ -match '^Samsung\.Tizen\.Ref\.API' } |
+                        Sort-Object
+                }
+                if ($packNames.Count -eq 0) {
+                    Write-Output "      - none"
+                } else {
+                    $packNames | ForEach-Object { Write-Output "      - $_" }
+                }
+            } catch {
+                Write-Output "    version: parse-error"
+                Write-Output "    api_ref_packs: parse-error"
+            }
+        }
+}
+if (-not $found) { Write-Output "  status: not-found" }
+
 # --- Certificate profiles -----------------------------------------------------
 Write-Output "tizen_certificates:"
 $tzData = [System.Environment]::GetEnvironmentVariable('TIZEN_STUDIO_DATA')

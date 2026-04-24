@@ -86,6 +86,11 @@ appears in `dotnet workload list`.** Workload manifests lag nuspec updates,
 so a freshly-published TFM in `Tizen.NET.nuspec` may not yet have a
 corresponding Ref pack in every SDK band's manifest.
 
+The `collect-env.sh` / `collect-env.ps1` scripts that ship with this skill
+automatically locate and parse every `samsung.net.sdk.tizen` manifest on
+disk and print the Ref pack list under `tizen_workload_manifests:`. Use
+that output as the authoritative answer for "can this machine build TFM X?".
+
 ### Observed as of 2026-04-24
 
 - `.NET 10` SDK band (`samsung.net.sdk.tizen` manifest version `10.0.123`)
