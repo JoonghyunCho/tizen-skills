@@ -108,6 +108,7 @@ End the response with a single next-command suggestion — the one thing the use
 | Workload installed, TFM still unresolved | Mixed .NET SDKs on PATH; `dotnet` resolves to a version without the workload | Check `dotnet --info` and `dotnet --list-sdks`; install workload for the active SDK |
 | `build.sh` fails on Windows | TizenFX `build.sh` assumes a POSIX shell | Use WSL2 or Git Bash; native Windows `dotnet build` works for app projects but not for the TizenFX repo itself |
 | `Tizen.NET.API*` package restore fails | Project TFM's platform suffix does not match the API package version (e.g., `net6.0-tizen9.0` ↔ API12, `net8.0-tizen11.0` ↔ API14) | Pin the correct TFM or run `dotnet workload update` |
+| Workload is listed but a specific TFM still fails (observed: .NET 10 SDK + `tizen 10.0.123` + `net8.0-tizen11.0`) | Installed workload's `WorkloadManifest.json` is missing the `Samsung.Tizen.Ref.API<N>` pack for that TFM | Inspect the manifest (see `references/tfm-workload-matrix.md`); install the SDK band whose manifest includes the needed Ref pack |
 | `sdb: command not found` | Tizen Studio not installed, or `tools/` not on PATH | Install Tizen Studio; prepend `$TIZEN_STUDIO/tools` to `PATH` |
 | Cert signing fails silently | No active certificate profile | Create via Tizen Certificate Manager or `tizen security-profiles add` |
 

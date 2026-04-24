@@ -54,9 +54,45 @@ with**, not a new TFM. A `tizen 10.0.*` workload on a machine with only a
 manifest may still only expose the TFMs listed in the matrix above.
 
 To confirm which TFMs a given workload actually exposes, inspect the
-`WorkloadManifest.json` on disk (e.g., `%ProgramFiles%\dotnet\sdk-manifests\<band>\samsung.net.tizen\*\WorkloadManifest.json`
-on Windows, `/usr/share/dotnet/sdk-manifests/<band>/samsung.net.tizen/*/WorkloadManifest.json`
-on Linux) and look for `alias` entries under each target pack.
+`WorkloadManifest.json` on disk. On Windows it lives at:
+
+```
+%ProgramFiles%\dotnet\sdk-manifests\<sdk-band>\samsung.net.sdk.tizen\WorkloadManifest.json
+```
+
+On Linux / macOS the typical path is:
+
+```
+/usr/share/dotnet/sdk-manifests/<sdk-band>/samsung.net.sdk.tizen/WorkloadManifest.json
+```
+
+### What the manifest tells you
+
+Inside `WorkloadManifest.json`, the authoritative list is the
+`workloads.tizen.packs` array and the `packs` dictionary. Look for entries
+of the form `Samsung.Tizen.Ref.API<N>` — each one corresponds to a specific
+Tizen platform version:
+
+| Ref pack                  | Matching TFM          | API Level |
+|---------------------------|-----------------------|-----------|
+| `Samsung.Tizen.Ref.API11` | `net6.0-tizen8.0`     | 11        |
+| `Samsung.Tizen.Ref.API12` | `net6.0-tizen9.0`     | 12        |
+| `Samsung.Tizen.Ref.API13` | `net8.0-tizen10.0`    | 13        |
+| `Samsung.Tizen.Ref.API14` | `net8.0-tizen11.0`    | 14        |
+
+**If an API Ref pack is missing from the installed workload, the matching
+TFM will fail to build on that machine — even if the `tizen` workload row
+appears in `dotnet workload list`.** Workload manifests lag nuspec updates,
+so a freshly-published TFM in `Tizen.NET.nuspec` may not yet have a
+corresponding Ref pack in every SDK band's manifest.
+
+### Observed as of 2026-04-24
+
+- `.NET 10` SDK band (`samsung.net.sdk.tizen` manifest version `10.0.123`)
+  ships Ref packs for **API11, API12, API13** only — **API14 is not yet
+  included**. Projects targeting `net8.0-tizen11.0` therefore cannot be
+  built with a .NET 10-only install and the .NET 10 band Tizen workload;
+  the user must install the .NET 8 SDK and its matching Tizen workload.
 
 ## Installing / updating the Workload
 
@@ -87,7 +123,8 @@ SDK will be patched before running the install.
 | `Package Tizen.NET.API13 is not compatible with net6.0-tizen9.0`                                             | API Level package version is tied to the TFM's platform suffix — API13 is for `net8.0-tizen10.0`, not `net6.0-*`.  |
 | `dotnet workload list` shows `tizen` but `dotnet build` still errors with NETSDK1139                         | `dotnet` on PATH resolves to a *different* SDK than the one the workload was installed against.                    |
 | `net8.0-tizen` resolves to the wrong API package                                                             | Unversioned TFM — pin to `net8.0-tizen10.0` or `net8.0-tizen11.0` instead.                                         |
-| Machine has `tizen 10.0.*` workload but no .NET 6 / .NET 8 SDK, `net8.0-tizen11.0` build still fails         | Workload manifest band (`10.0.*`) ≠ TFM set it exposes. `.NET 8 SDK` is still required to build `net8.0-*` TFMs. Install the .NET 8 SDK. |
+| Machine has `tizen 10.0.*` workload but no .NET 6 / .NET 8 SDK, `net8.0-tizen11.0` build still fails         | `.NET 10` band manifest (`10.0.123` as of 2026-04) ships Ref packs only up to `Samsung.Tizen.Ref.API13` — no `API14`. Install `.NET 8 SDK` and its tizen workload. |
+| Workload listed but a specific TFM (e.g. `net8.0-tizen11.0`) refuses to resolve                              | Missing `Samsung.Tizen.Ref.API<N>` pack in that workload's manifest — inspect `WorkloadManifest.json` directly, don't trust `dotnet workload list` alone. |
 
 ## Cross-references
 
