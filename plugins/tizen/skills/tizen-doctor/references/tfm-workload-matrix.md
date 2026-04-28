@@ -101,22 +101,38 @@ that output as the authoritative answer for "can this machine build TFM X?".
 
 ## Installing / updating the Workload
 
+> ⚠️ **The Tizen Workload is NOT on the public dotnet workload feed.**
+> The standard commands (`dotnet workload install tizen`,
+> `dotnet workload update`) do **not** install or update the Tizen workload.
+> You must use the install scripts shipped from the `Samsung/Tizen.NET` repo:
+
+**Linux / macOS / WSL:**
+
 ```bash
-# Install for the currently active SDK band
-dotnet workload install tizen
+curl -sSL https://raw.githubusercontent.com/Samsung/Tizen.NET/main/workload/scripts/workload-install.sh | sudo bash
+```
 
-# Update installed workloads to the latest matching version
-dotnet workload update
+**Windows (PowerShell):**
 
-# See what's installed
+```powershell
+Invoke-WebRequest 'https://raw.githubusercontent.com/Samsung/Tizen.NET/main/workload/scripts/workload-install.ps1' -OutFile 'workload-install.ps1'
+./workload-install.ps1
+```
+
+**Updating** is the same script re-run — there is no separate update command.
+
+After install, verify with the standard commands (these *do* work for inspection):
+
+```bash
 dotnet workload list
+dotnet --info        # confirms which .NET SDK band the workload was installed against
 ```
 
 If the project targets `net8.0-tizen11.0` and the machine has both .NET 6 and
-.NET 8 SDKs, the workload must be installed for **the .NET 8 SDK**. Running
-`dotnet workload install tizen` resolves against the currently active `dotnet`
-(the one `dotnet --version` prints) — check `dotnet --info` to confirm which
-SDK will be patched before running the install.
+.NET 8 SDKs, the workload must be installed for **the .NET 8 SDK**. The Samsung
+install script resolves against the currently active `dotnet` (the one
+`dotnet --version` prints) — check `dotnet --info` to confirm which SDK will
+be patched before running the script.
 
 ## Common mismatches and their signatures
 

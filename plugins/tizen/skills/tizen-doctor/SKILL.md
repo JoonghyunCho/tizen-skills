@@ -51,7 +51,10 @@ Run the collector script for the host OS. It prints a single YAML-ish report cov
 # Linux / macOS / WSL2
 bash scripts/collect-env.sh
 
-# Windows (PowerShell)
+# Windows — built-in PowerShell 5.1
+powershell.exe -ExecutionPolicy Bypass -File scripts/collect-env.ps1
+
+# Windows — PowerShell 7+ (if installed)
 pwsh -File scripts/collect-env.ps1
 ```
 
@@ -83,9 +86,18 @@ Template:
 ## 🔴 Blockers
 
 1. **Install the Tizen Workload**
-   - Why: `net8.0-tizen11.0` (and sibling Tizen TFMs) require `Tizen.NET.Sdk`, which ships via the Tizen Workload.
-   - Command: `dotnet workload install tizen`
+   - Why: `net8.0-tizen11.0` (and sibling Tizen TFMs) require `Tizen.NET.Sdk`, which ships via the Tizen Workload. **The Tizen Workload is not on the public dotnet workload feed — installing it via `dotnet workload install tizen` will not work.** It is bootstrapped from a script in the Samsung/Tizen.NET repo.
+   - Command (Linux / macOS / WSL):
+     ```bash
+     curl -sSL https://raw.githubusercontent.com/Samsung/Tizen.NET/main/workload/scripts/workload-install.sh | sudo bash
+     ```
+   - Command (Windows PowerShell):
+     ```powershell
+     Invoke-WebRequest 'https://raw.githubusercontent.com/Samsung/Tizen.NET/main/workload/scripts/workload-install.ps1' -OutFile 'workload-install.ps1'
+     ./workload-install.ps1
+     ```
    - Verify: `dotnet workload list` shows `tizen` with a version matching the active SDK band.
+   - Updating: re-run the same script — `dotnet workload update` does **not** update the Tizen workload.
 
 2. ...
 
@@ -104,10 +116,10 @@ End the response with a single next-command suggestion — the one thing the use
 
 | Symptom | Root cause | Fix |
 |---|---|---|
-| `NETSDK1139` on `net8.0-tizen11.0` (or any `net*-tizen*` TFM) | Tizen Workload not installed for the current .NET SDK | `dotnet workload install tizen` |
+| `NETSDK1139` on `net8.0-tizen11.0` (or any `net*-tizen*` TFM) | Tizen Workload not installed for the current .NET SDK | Run Samsung's `workload-install.{sh,ps1}` from `Samsung/Tizen.NET/workload/scripts/`. **Note: `dotnet workload install tizen` does NOT work — Tizen workload is not on the public feed.** |
 | Workload installed, TFM still unresolved | Mixed .NET SDKs on PATH; `dotnet` resolves to a version without the workload | Check `dotnet --info` and `dotnet --list-sdks`; install workload for the active SDK |
 | `build.sh` fails on Windows | TizenFX `build.sh` assumes a POSIX shell | Use WSL2 or Git Bash; native Windows `dotnet build` works for app projects but not for the TizenFX repo itself |
-| `Tizen.NET.API*` package restore fails | Project TFM's platform suffix does not match the API package version (e.g., `net6.0-tizen9.0` ↔ API12, `net8.0-tizen11.0` ↔ API14) | Pin the correct TFM or run `dotnet workload update` |
+| `Tizen.NET.API*` package restore fails | Project TFM's platform suffix does not match the API package version (e.g., `net6.0-tizen9.0` ↔ API12, `net8.0-tizen11.0` ↔ API14) | Pin the correct TFM or re-run Samsung's `workload-install.{sh,ps1}` to refresh to the latest workload (the standard `dotnet workload update` does not update the Tizen workload) |
 | Workload is listed but a specific TFM still fails (observed: .NET 10 SDK + `tizen 10.0.123` + `net8.0-tizen11.0`) | Installed workload's `WorkloadManifest.json` is missing the `Samsung.Tizen.Ref.API<N>` pack for that TFM | Inspect the manifest (see `references/tfm-workload-matrix.md`); install the SDK band whose manifest includes the needed Ref pack |
 | `sdb: command not found` | Tizen Studio not installed, or `tools/` not on PATH | Install Tizen Studio; prepend `$TIZEN_STUDIO/tools` to `PATH` |
 | Cert signing fails silently | No active certificate profile | Create via Tizen Certificate Manager or `tizen security-profiles add` |
