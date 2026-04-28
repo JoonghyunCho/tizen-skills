@@ -1,0 +1,84 @@
+name: Mirror tizen-doctor from Samsung/Tizen.NET
+
+# Source of truth: Samsung/Tizen.NET/.agents/skills/tizen-doctor/
+# This workflow keeps plugins/tizen/skills/tizen-doctor/ in this repo in sync,
+# so the marketplace install (`claude plugin install tizen`) keeps working
+# while skill content is maintained co-located with the Tizen Workload manifest.
+
+on:
+  schedule:
+    # Every 4 hours. Adjust if you want faster propagation.
+    - cron: '0 */4 * * *'
+  workflow_dispatch:        # allow manual trigger from the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mirror-from-tizen-net.yml'
+
+permissions:
+  contents: write   # needed to commit + push back to this repo's main
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo (mirror destination)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout Samsung/Tizen.NET (source of truth, sparse)
+        uses: actions/checkout@v4
+        with:
+          repository: Samsung/Tizen.NET
+          path: upstream
+          ref: main
+          fetch-depth: 1
+          sparse-checkout: |
+            .agents/skills/tizen-doctor
+
+      - name: Verify upstream skill exists
+        run: |
+          if [ ! -d "upstream/.agents/skills/tizen-doctor" ]; then
+            echo "::error::upstream/.agents/skills/tizen-doctor not found — did the PR to Samsung/Tizen.NET land yet?"
+            exit 1
+          fi
+
+      - name: Sync skill files
+        run: |
+          src="upstream/.agents/skills/tizen-doctor"
+          dst="plugins/tizen/skills/tizen-doctor"
+          mkdir -p "$dst"
+          # --delete keeps the mirror exact (removes files deleted upstream)
+          rsync -av --delete --exclude='.git' "$src/" "$dst/"
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- plugins/tizen/skills/tizen-doctor/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes — mirror already in sync."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected; will commit."
+            git diff --stat -- plugins/tizen/skills/tizen-doctor/
+          fi
+
+      - name: Commit and push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          UPSTREAM_SHA=$(cd upstream && git rev-parse --short HEAD)
+          UPSTREAM_URL="https://github.com/Samsung/Tizen.NET/tree/${UPSTREAM_SHA}/.agents/skills/tizen-doctor"
+
+          git add plugins/tizen/skills/tizen-doctor/
+          git commit -m "chore: mirror tizen-doctor from Samsung/Tizen.NET@${UPSTREAM_SHA}
+
+Source: ${UPSTREAM_URL}
+
+This is an automated mirror — manual edits under plugins/tizen/skills/
+will be overwritten on the next run. Submit changes via PR to
+Samsung/Tizen.NET."
+          git push

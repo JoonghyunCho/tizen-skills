@@ -1,105 +1,70 @@
-# Tizen Agent Skills
+# tizen-skills (marketplace mirror)
 
-A curated collection of [Agent Skills](https://agentskills.io) for Tizen .NET development.
-Help AI coding agents (Claude Code, GitHub Copilot, VS Code, Cursor, Codex, …) understand the Tizen .NET ecosystem: build setup, Workloads, NUI patterns, API Level compatibility, emulator / `sdb`, packaging, and more.
+A Claude Code plugin marketplace mirror of AI agent skills maintained at
+[**Samsung/Tizen.NET**](https://github.com/Samsung/Tizen.NET/tree/main/.agents/skills).
 
-> Inspired by and modeled after [`dotnet/skills`](https://github.com/dotnet/skills). Adheres to the open [agentskills.io](https://agentskills.io) specification, so a single skill bundle works across all compatible agents.
+This repo exists so Tizen .NET app developers can install the skills with a
+single command, without cloning the Workload source repo.
 
-## Why this exists
-
-Tizen .NET has specific conventions — `build.sh` entry points, `net*-tizen` TFMs requiring the Tizen Workload, Tizen API Level compatibility, `sdb` tooling, privilege manifests — that general-purpose AI coding assistants don't know out of the box. Bundling this procedural knowledge as Agent Skills gives any compatible agent instant Tizen .NET expertise without model retraining.
-
-## Plugins
-
-| Plugin | Description | Status |
-|---|---|---|
-| [`tizen`](./plugins/tizen) | Core Tizen .NET skills: environment diagnosis, build, Workload setup, packaging | 🟢 initial |
-| `tizen-nui` | NUI framework patterns, layout, migration from Xamarin.Forms | 📝 planned |
-| `tizen-api` | Tizen API Level compatibility, privilege manifest, capability lookup | 📝 planned |
-| `tizen-emulator` | Emulator / `sdb` / certificate profile setup | 📝 planned |
-| `tizen-maui` | .NET MAUI on Tizen: setup, head configuration, troubleshooting | 📝 planned |
-
-### Current skills in `tizen` plugin
-
-- **`tizen-doctor`** — Diagnose a Tizen .NET development environment and guide the user through fixing missing or misconfigured components (SDKs, Workloads, `sdb`, certificates). Cross-platform (Linux / Windows / macOS).
+> **Source of truth**: skill content lives in
+> [`Samsung/Tizen.NET/.agents/skills/`](https://github.com/Samsung/Tizen.NET/tree/main/.agents/skills).
+> Manual edits to `plugins/tizen/skills/` here will be overwritten on the next
+> mirror run. Send fixes / new skills as PRs to **Samsung/Tizen.NET**.
 
 ## Installation
 
 ### Claude Code
 
 ```bash
-# Add this repo as a marketplace, then install a plugin
 claude plugin marketplace add JoonghyunCho/tizen-skills
 claude plugin install tizen
 ```
 
-### GitHub Copilot (CLI / VS Code)
+### Other compatible agents (Cursor, Copilot, Codex, …)
 
-Follow [Copilot Agent Skills install docs](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) — point it at this repo.
+The skills follow the [agentskills.io](https://agentskills.io) standard and
+work with any compliant client. See the
+[Client Showcase](https://agentskills.io/clients) for per-tool instructions,
+or copy `plugins/tizen/skills/<skill>/` into your own
+`~/.agents/skills/<skill>/`.
 
-### Other agents (Cursor, Codex, Gemini CLI, Goose, …)
+## Skills currently mirrored
 
-Because the skills conform to the [agentskills.io](https://agentskills.io) standard, any compatible client can load them. See the [Client Showcase](https://agentskills.io/clients) for per-tool instructions.
+| Skill | What it does |
+|---|---|
+| [`tizen-doctor`](./plugins/tizen/skills/tizen-doctor/SKILL.md) | Diagnose Tizen .NET build environment failures (NETSDK1139, missing Tizen Workload, `net*-tizen*.0` TFM resolution, `WorkloadManifest.json` Ref pack inspection) and produce a prioritized fix list. Cross-platform (Linux / Windows / macOS / WSL2). |
 
-### Local (manual)
+## How the mirror works
 
-```bash
-git clone https://github.com/JoonghyunCho/tizen-skills.git
-# Point your agent at plugins/tizen/skills/ to load skills directly
-```
+[`.github/workflows/mirror-from-tizen-net.yml`](./.github/workflows/mirror-from-tizen-net.yml)
+runs every 4 hours (or on manual trigger), fetches
+`Samsung/Tizen.NET/.agents/skills/tizen-doctor/` via sparse checkout,
+syncs it under `plugins/tizen/skills/tizen-doctor/`, and commits if anything
+changed. The commit message records the upstream SHA for traceability.
 
-## Using a skill
-
-Skills are loaded via **progressive disclosure** — agents only pull in the full instructions when a task matches. A few examples that should activate `tizen-doctor`:
-
-- "Why does `dotnet build` fail with NETSDK1139 on my Tizen project?"
-- "Set up a fresh machine for TizenFX development on WSL."
-- "The Tizen Workload shows as installed but `net8.0-tizen11.0` still fails to resolve."
-
-The agent then runs environment-collection scripts, interprets the result against the Tizen .NET reference tables, and gives a prioritized fix list.
-
-## Repository layout
-
-```
-tizen-skills/
-├── README.md
-├── LICENSE
-├── CONTRIBUTING.md
-├── .claude-plugin/
-│   └── marketplace.json      # Marketplace entry for Claude Code
-└── plugins/
-    └── tizen/
-        ├── plugin.json       # Plugin manifest
-        └── skills/
-            └── tizen-doctor/
-                ├── SKILL.md
-                ├── scripts/
-                └── references/
-```
-
-Each plugin is a self-contained bundle that can be installed independently.
-
-## Compatibility
-
-- **Tizen TFMs**: `net6.0-tizen8.0` (API 11), `net6.0-tizen9.0` (API 12), `net8.0-tizen10.0` (API 13), `net8.0-tizen11.0` (API 14) — see [`tfm-workload-matrix`](./plugins/tizen/skills/tizen-doctor/references/tfm-workload-matrix.md) for the full table including unversioned fallbacks
-- **.NET SDK bands**: 6.0 and 8.0
-- **Tizen API Level**: 11 – 14 (platform 8.0 / 9.0 / 10.0 / 11.0)
-- **OS**: Linux (Ubuntu 20.04+ / WSL2), Windows 10+, macOS 12+
+Propagation lag from a Samsung/Tizen.NET merge to a successful `claude plugin
+install` is typically **0 – 4 hours** (whenever the next scheduled run fires).
+For faster propagation after a critical fix, run the workflow manually from
+the Actions tab.
 
 ## Contributing
 
-Contributions welcome — new skills, refinements to existing ones, platform-specific fixes. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines, and validate your skill with the [`skills-ref`](https://github.com/agentskills/agentskills/tree/main/skills-ref) tool before submitting:
+**Don't open PRs here.** Send changes to
+[Samsung/Tizen.NET](https://github.com/Samsung/Tizen.NET) — the skills live at
+`.agents/skills/<name>/`. Once that PR merges, the mirror picks it up
+automatically.
 
-```bash
-skills-ref validate ./plugins/tizen/skills/tizen-doctor
-```
+The exception is the mirror plumbing itself (this README, the workflow YAML,
+plugin manifests). Those are owned by this repo.
+
+## Compatibility
+
+- **Tizen TFMs**: `net6.0-tizen8.0`, `net6.0-tizen9.0`, `net8.0-tizen10.0`,
+  `net8.0-tizen11.0` (see the matrix shipped with each skill)
+- **OS**: Linux (Ubuntu 20.04+ / WSL2), Windows 10+, macOS 12+
+- **Agents**: any agentskills.io-compatible client
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
-
-## Acknowledgements
-
-- [Agent Skills](https://agentskills.io) standard, originally released by Anthropic
-- [`dotnet/skills`](https://github.com/dotnet/skills) for the reference plugin layout
-- The TizenFX maintainer community for the conventions this codifies
+Skill content is licensed by Samsung/Tizen.NET (see that repo's LICENSE).
+The mirror plumbing (workflow YAML, this README, plugin manifests) is MIT.
